@@ -1,0 +1,249 @@
+/* ==========================================================================
+   DACTHO 360 - Tokens de diseño
+   Tipografía: Source Sans 3 (texto, sans humanista) + Fraunces (titulares).
+   Ambas fuentes se sirven localmente desde /fonts (sin CDN).
+   Todos los colores se definen aquí; los componentes solo usan variables.
+   Contraste verificado a nivel AA (texto normal >= 4,5:1).
+   ========================================================================== */
+
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../fonts/sourcesans3-latin.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("../fonts/fraunces-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ---- Familias tipográficas ---- */
+  --font-texto: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-titulo: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* ---- Escala tipográfica (razón aprox. 1,2) ---- */
+  --fs-xs: 0.8125rem;   /* 13 px: notas, etiquetas */
+  --fs-sm: 0.9375rem;   /* 15 px: tablas, texto secundario */
+  --fs-md: 1rem;        /* 16 px: texto base */
+  --fs-lg: 1.1875rem;   /* 19 px: subtítulos */
+  --fs-xl: 1.5rem;      /* 24 px: títulos de sección */
+  --fs-2xl: 2rem;       /* 32 px: título de página */
+  --fs-kpi: 2.25rem;    /* 36 px: cifras de KPI */
+  --lh-tight: 1.2;
+  --lh-base: 1.55;
+  --fw-regular: 400;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ---- Espaciado y forma ---- */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --radio: 10px;
+  --radio-sm: 6px;
+  --ancho-nav: 16rem;
+  --ancho-max: 76rem;
+  --sombra: 0 1px 2px rgb(16 32 64 / 0.06), 0 2px 8px rgb(16 32 64 / 0.05);
+  --radio-lg: 16px;
+
+  /* ---- Profundidad, vidrio y movimiento ---- */
+  --sombra-1: 0 1px 2px rgb(16 32 64 / 0.06), 0 1px 1px rgb(16 32 64 / 0.04);
+  --sombra-2: 0 2px 4px rgb(16 32 64 / 0.05), 0 8px 24px -8px rgb(16 32 64 / 0.14);
+  --sombra-3: 0 4px 8px rgb(16 32 64 / 0.06), 0 18px 40px -12px rgb(16 32 64 / 0.22);
+  --vidrio: rgb(255 255 255 / 0.78);
+  --vidrio-fuerte: rgb(255 255 255 / 0.92);
+  --vidrio-borde: rgb(190 202 222 / 0.75);
+  --brillo: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --desenfoque: blur(14px) saturate(150%);
+  --grad-tarjeta: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 42%);
+  --grad-primario: linear-gradient(135deg, #1a4d99 0%, #2f6bc4 55%, #3f86e0 100%);
+  --grad-cabecera: linear-gradient(135deg, rgb(26 77 153 / 0.10), rgb(18 137 106 / 0.07) 60%, rgb(26 77 153 / 0.03));
+  --halo: rgb(26 77 153 / 0.16);
+  --ease: cubic-bezier(0.22, 0.8, 0.28, 1);
+  --dur: 220ms;
+  --textura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.2 0 0 0 0 0.4 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --textura-opacidad: 0.05;
+  --fondo-app:
+    radial-gradient(60rem 38rem at 8% -8%, rgb(47 107 196 / 0.13), transparent 62%),
+    radial-gradient(48rem 34rem at 100% 0%, rgb(18 137 106 / 0.08), transparent 60%),
+    linear-gradient(180deg, #f4f6fa, #eef2f8 70%);
+
+  color-scheme: light;
+
+  /* ---- Tema claro ---- */
+  --bg: #f4f6fa;
+  --superficie: #ffffff;
+  --superficie-2: #eef2f8;
+  --texto: #14213d;
+  --texto-suave: #46536a;       /* 7,4:1 sobre blanco */
+  --borde: #cfd7e4;
+  --borde-fuerte: #8795ab;
+
+  --primario: #1a4d99;          /* azul institucional, 8,3:1 sobre blanco */
+  --primario-hover: #123a75;
+  --sobre-primario: #ffffff;
+  --primario-suave: #e3ecfa;
+  --enlace: #1a4d99;
+  --foco: #0a5fd6;
+
+  /* Bandas: verde azulado, ámbar y rojo ladrillo (distinguibles en daltonismo);
+     además cada banda lleva siempre un símbolo y su nombre. */
+  --ok-texto: #0a5c44;
+  --ok-fondo: #dbf1e8;
+  --ok-barra: #12896a;
+  --aviso-texto: #6b4200;
+  --aviso-fondo: #fdecc4;
+  --aviso-barra: #d99200;
+  --riesgo-texto: #8f1d14;
+  --riesgo-fondo: #fbdcd8;
+  --riesgo-barra: #b3261e;
+  --info-texto: #174a8c;
+  --info-fondo: #e3ecfa;
+
+  /* Serie neutra para gráficos de una sola variable */
+  --serie-1: #1a4d99;
+  --serie-2: #5b7fb5;
+  --serie-3: #8aa3c7;
+  --pista: #dfe5ef;
+
+  /* Categorías neutrales (sin rojo/verde/ámbar, que quedan para las bandas) */
+  --cat-1: #1a4d99;
+  --cat-2: #6b57b8;
+  --cat-3: #0b8fa3;
+  --cat-4: #b0407a;
+  --cat-5: #a8741a;
+  --cat-6: #5b7fb5;
+  --cat-otros: #8795ab;
+}
+
+/* ---- Tema oscuro: por preferencia del sistema o elección explícita ---- */
+/* Los mismos valores se repiten para la preferencia del sistema y para la
+   elección explícita del usuario (atributo data-tema en la raíz). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
+    --bg: #0e1522;
+    --superficie: #172033;
+    --superficie-2: #1e2a42;
+    --texto: #e9eef7;
+    --texto-suave: #b0bccf;
+    --borde: #2e3b55;
+    --borde-fuerte: #6f7f9b;
+    --primario: #2f6bc4;
+    --primario-hover: #3d7ad6;
+    --sobre-primario: #ffffff;
+    --primario-suave: #1c3158;
+    --enlace: #8bb8f5;
+    --foco: #8bb8f5;
+    --ok-texto: #7fdcb9;
+    --ok-fondo: #12392f;
+    --ok-barra: #2fb58f;
+    --aviso-texto: #f3c566;
+    --aviso-fondo: #3d2f10;
+    --aviso-barra: #e0a21f;
+    --riesgo-texto: #ffb3a9;
+    --riesgo-fondo: #4a1d19;
+    --riesgo-barra: #e2574c;
+    --info-texto: #a9c9f7;
+    --info-fondo: #1c3158;
+    --serie-1: #6fa3ec;
+    --serie-2: #4d7fc4;
+    --serie-3: #3a5f96;
+    --pista: #2a3753;
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.4);
+    --cat-1: #6fa3ec;
+    --cat-2: #a595ec;
+    --cat-3: #3cc1d6;
+    --cat-4: #ec7fb0;
+    --cat-5: #e0b05a;
+    --cat-6: #8fb0dc;
+    --cat-otros: #7d8aa3;
+    --sombra-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --sombra-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 14px 32px -12px rgb(0 0 0 / 0.65);
+    --sombra-3: 0 4px 10px rgb(0 0 0 / 0.4), 0 26px 52px -14px rgb(0 0 0 / 0.8);
+    --vidrio: rgb(23 32 51 / 0.66);
+    --vidrio-fuerte: rgb(23 32 51 / 0.86);
+    --vidrio-borde: rgb(255 255 255 / 0.075);
+    --brillo: inset 0 1px 0 rgb(255 255 255 / 0.07);
+    --grad-tarjeta: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0) 46%);
+    --grad-primario: linear-gradient(135deg, #2358ad 0%, #2f6bc4 55%, #4d8be0 100%);
+    --grad-cabecera: linear-gradient(135deg, rgb(111 163 236 / 0.14), rgb(47 181 143 / 0.08) 60%, rgb(111 163 236 / 0.03));
+    --halo: rgb(111 163 236 / 0.22);
+    --textura-opacidad: 0.06;
+    --fondo-app:
+      radial-gradient(64rem 40rem at 6% -10%, rgb(47 107 196 / 0.30), transparent 62%),
+      radial-gradient(50rem 36rem at 100% 4%, rgb(165 149 236 / 0.13), transparent 60%),
+      radial-gradient(44rem 30rem at 55% 110%, rgb(47 181 143 / 0.10), transparent 62%),
+      linear-gradient(180deg, #0e1522, #0b111c 80%);
+  }
+}
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+  --bg: #0e1522;
+  --superficie: #172033;
+  --superficie-2: #1e2a42;
+  --texto: #e9eef7;
+  --texto-suave: #b0bccf;
+  --borde: #2e3b55;
+  --borde-fuerte: #6f7f9b;
+  --primario: #2f6bc4;
+  --primario-hover: #3d7ad6;
+  --sobre-primario: #ffffff;
+  --primario-suave: #1c3158;
+  --enlace: #8bb8f5;
+  --foco: #8bb8f5;
+  --ok-texto: #7fdcb9;
+  --ok-fondo: #12392f;
+  --ok-barra: #2fb58f;
+  --aviso-texto: #f3c566;
+  --aviso-fondo: #3d2f10;
+  --aviso-barra: #e0a21f;
+  --riesgo-texto: #ffb3a9;
+  --riesgo-fondo: #4a1d19;
+  --riesgo-barra: #e2574c;
+  --info-texto: #a9c9f7;
+  --info-fondo: #1c3158;
+  --serie-1: #6fa3ec;
+  --serie-2: #4d7fc4;
+  --serie-3: #3a5f96;
+  --pista: #2a3753;
+  --sombra: 0 1px 2px rgb(0 0 0 / 0.4);
+  --cat-1: #6fa3ec;
+  --cat-2: #a595ec;
+  --cat-3: #3cc1d6;
+  --cat-4: #ec7fb0;
+  --cat-5: #e0b05a;
+  --cat-6: #8fb0dc;
+  --cat-otros: #7d8aa3;
+  --sombra-1: 0 1px 2px rgb(0 0 0 / 0.5);
+  --sombra-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 14px 32px -12px rgb(0 0 0 / 0.65);
+  --sombra-3: 0 4px 10px rgb(0 0 0 / 0.4), 0 26px 52px -14px rgb(0 0 0 / 0.8);
+  --vidrio: rgb(23 32 51 / 0.66);
+  --vidrio-fuerte: rgb(23 32 51 / 0.86);
+  --vidrio-borde: rgb(255 255 255 / 0.075);
+  --brillo: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  --grad-tarjeta: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0) 46%);
+  --grad-primario: linear-gradient(135deg, #2358ad 0%, #2f6bc4 55%, #4d8be0 100%);
+  --grad-cabecera: linear-gradient(135deg, rgb(111 163 236 / 0.14), rgb(47 181 143 / 0.08) 60%, rgb(111 163 236 / 0.03));
+  --halo: rgb(111 163 236 / 0.22);
+  --textura-opacidad: 0.06;
+  --fondo-app:
+  radial-gradient(64rem 40rem at 6% -10%, rgb(47 107 196 / 0.30), transparent 62%),
+  radial-gradient(50rem 36rem at 100% 4%, rgb(165 149 236 / 0.13), transparent 60%),
+  radial-gradient(44rem 30rem at 55% 110%, rgb(47 181 143 / 0.10), transparent 62%),
+  linear-gradient(180deg, #0e1522, #0b111c 80%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0ms; }
+}

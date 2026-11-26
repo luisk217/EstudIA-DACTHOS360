@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Pruebas del motor de reglas · DACTHO 360</title>
+  <style>
+    :root { --fondo: #fbfaf7; --texto: #1c2430; --suave: #5a6675; --borde: #d6d9de; --ok: #17613a; --mal: #a3261f; --fila: #f1f2f4; }
+    @media (prefers-color-scheme: dark) { :root { --fondo: #14181e; --texto: #e8ebef; --suave: #a3adba; --borde: #343c47; --ok: #6fd09a; --mal: #ff8f86; --fila: #1d232b; } }
+    body { margin: 0; padding: 1rem; background: var(--fondo); color: var(--texto); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+    main { max-width: 64rem; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+    p { margin: .25rem 0 1rem; color: var(--suave); }
+    #resumen { padding: .75rem 1rem; border: 2px solid var(--borde); border-radius: 8px; font-weight: 700; }
+    #resumen.aprobado { border-color: var(--ok); color: var(--ok); }
+    #resumen.fallido { border-color: var(--mal); color: var(--mal); }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+    th { background: var(--fila); }
+    .estado { font-weight: 700; white-space: nowrap; }
+    .estado.aprobado { color: var(--ok); }
+    .estado.fallido { color: var(--mal); }
+    .detalle { color: var(--suave); font-size: .9rem; word-break: break-word; }
+    h2 { font-size: 1.05rem; margin: 1.5rem 0 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Pruebas del motor de reglas de alerta</h1>
+    <p>Ejecuta en el navegador los casos de <code>js/reglas.js</code>: operadores, Y/O, ámbito por ejecutiva, valores nulos e importación de reglas inválidas. Ábrala desde un servidor local (por ejemplo, <code>python -m http.server</code> dentro de la carpeta <code>web</code>) en <code>/tests/reglas.test.html</code>.</p>
+    <div id="resumen" role="status" aria-live="polite">Ejecutando pruebas...</div>
+    <table>
+      <caption style="text-align:left;font-weight:700;padding:.5rem 0">Resultado de cada prueba</caption>
+      <thead><tr><th scope="col">Resultado</th><th scope="col">Prueba</th><th scope="col">Detalle</th></tr></thead>
+      <tbody id="resultados"></tbody>
+    </table>
+  </main>
+
+  <script type="module">
+    import { datos } from '../js/datos.js';
+    import { h } from '../js/util.js';
+    import * as R from '../js/reglas.js';
+
+    // ---- Mini ejecutor ---------------------------------------------------------
+    const pruebas = [];
+    const prueba = (nombre, fn) => pruebas.push({ nombre, fn });
+    const ok = (cond, msg = 'la condición es falsa') => { if (!cond) throw new Error(msg); };
+    const igual = (real, esperado, msg = '') => {
+      const a = JSON.stringify(real), b = JSON.stringify(esperado);
+      if (a !== b) throw new Error(`${msg} esperado ${b} pero se obtuvo ${a}`.trim());
+    };
+    const lanza = (fn, fragmento) => {
+      try { fn(); } catch (e) { ok(!fragmento || e.message.includes(fragmento), `el mensaje «${e.message}» no contiene «${fragmento}»`); return; }
+      throw new Error('se esperaba una excepción y no ocurrió');
+    };
+    const ids = (lista) => lista.map((a) => a.id);
+
+    // ---- Almacenamiento simulado (no toca el del tablero) ----------------------------------
+    function crearAlmacenFalso() {
+      const m = new Map();
+      return {
+        falla: false, lecturaBloqueada: false,
+        getItem(k) { if (this.lecturaBloqueada) throw new Error('bloqueado'); return m.has(k) ? m.get(k) : null; },
+        setItem(k, v) { if (this.falla) throw new Error('lleno'); m.set(k, String(v)); },
+        removeItem(k) { m.delete(k); }, clear() { m.clear(); },
+        get length() { return m.size; }, key(i) { return [...m.keys()][i] ?? null; },
+      };
+    }
+    const falso = crearAlmacenFalso();
+    let almacenSimulado = true;
+    try { Object.defineProperty(window, 'localStorage', { value: falso, configurable: true }); } catch { almacenSimulado = false; }
+    almacenSimulado = almacenSimulado && window.localStorage === falso;
+    const CLAVE = 'dactho360.reglas.v1', CLAVE_ANTIGUA = 'dacho360.reglas.v1';
+    const reiniciar = () => { falso.clear(); falso.falla = false; falso.lecturaBloqueada = false; R.almacen.reglas = []; R.almacen.ultimoError = null; R.almacen.persistente = true; };
+
+    // ---- Datos de ejemplo ----------------------------------------------------------------
+    const af = (o) => ({ id: 'X', banda: 'Saludable', riesgo: 10, salud: 90, dias_venc: 200, estado: 'Activo', nivel: 'Liderar', ejecutiva: 'KAM A',
+      tipo: 'Empresa', sector: 'Finanzas', tamano: 'Grande', ciudad: 'Bogotá', asist: 5, asist_90d: 2, eventos: 3, personas: 2, dias_ult_asist: 10,
+      sat: 4.8, n_resp: 2, nps_min: 10, antig_anios: 5, comunidad: true, renovo_reciente: false, ...o });
+    const A1 = af({ id: 'EMP-0001', banda: 'Riesgo alto', riesgo: 70, salud: 30, dias_venc: -5, asist: 0, asist_90d: 0, eventos: 0, personas: 0, dias_ult_asist: null, sat: null, n_resp: 0, nps_min: null, nivel: 'Conectar', comunidad: false });
+    const A2 = af({ id: 'EMP-0002', ejecutiva: 'KAM B', banda: 'Atención', riesgo: 40, salud: 60, dias_venc: 20, asist: 3, asist_90d: 0, sat: 4.0, nps_min: 6, nivel: 'Crecer' });
+    const A3 = af({ id: 'EMP-0003', dias_venc: null, estado: 'Periodo de Gracia', antig_anios: null });
+    const A4 = af({ id: 'EMP-0004', ejecutiva: 'Sin asignar', banda: 'Riesgo alto', riesgo: 55, salud: 45, dias_venc: 30, comunidad: undefined });
+    const MUESTRA = [A1, A2, A3, A4];
+    datos.afiliadosLista = MUESTRA;
+    const c = (campo, op, valor, conector = 'Y') => ({ conector, campo, op, valor });
+    const regla = (condiciones, extra = {}) => ({ id: 'r1', nombre: 'Prueba', descripcion: '', activa: true, severidad: 'media', ambito: null, condiciones, ...extra });
+
+    // ============================ Operadores numéricos ===================================
+    prueba('Numérico: eq y ne', () => {
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('asist', 'eq', 0)))), ['EMP-0001']);
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('asist', 'ne', 0)))), ['EMP-0002', 'EMP-0003', 'EMP-0004']);
+    });
+    prueba('Numérico: lt, le, gt, ge distinguen los bordes', () => {
+      const q = (op, v) => ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('riesgo', op, v))));
+      igual(q('lt', 55), ['EMP-0002', 'EMP-0003']);
+      igual(q('le', 55), ['EMP-0002', 'EMP-0003', 'EMP-0004']);
+      igual(q('gt', 55), ['EMP-0001']);
+      igual(q('ge', 55), ['EMP-0001', 'EMP-0004']);
+    });
+    prueba('Numérico: entre es inclusivo en ambos extremos', () => {
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('dias_venc', 'entre', [20, 30])))), ['EMP-0002', 'EMP-0004']);
+      ok(R.cumpleCondicion(A2, c('dias_venc', 'entre', [20, 20])), 'rango de un solo valor');
+      ok(!R.cumpleCondicion(A2, c('dias_venc', 'entre', [21, 30])));
+      ok(!R.cumpleCondicion(A2, c('dias_venc', 'entre', [30, 20])), 'rango invertido no cumple');
+    });
+    prueba('Numérico: el valor puede llegar como texto (reglas importadas)', () => {
+      ok(R.cumpleCondicion(A2, c('dias_venc', 'lt', '60')));
+      ok(R.cumpleCondicion(A2, c('dias_venc', 'entre', ['10', '25'])));
+      ok(R.cumpleCondicion(A2, c('sat', 'eq', '4')));
+    });
+    prueba('Numérico: decimales exactos como 4,2 en comparaciones', () => {
+      ok(R.cumpleCondicion(A2, c('sat', 'lt', 4.2)) && !R.cumpleCondicion(A3, c('sat', 'lt', 4.2)));
+    });
+    prueba('Numérico: valor vacío o inválido nunca cumple (no se lee como 0)', () => {
+      for (const op of ['eq', 'lt', 'le', 'gt', 'ge', 'ne']) {
+        for (const v of ['', '   ', null, undefined, 'abc']) ok(!R.cumpleCondicion(A1, c('asist', op, v)), `${op} con ${JSON.stringify(v)} cumplió`);
+      }
+      ok(!R.cumpleCondicion(A1, c('asist', 'entre', ['', 5])), 'límite inferior vacío');
+      ok(!R.cumpleCondicion(A1, c('asist', 'entre', 5)), 'entre sin arreglo');
+    });
+    prueba('Numérico: vacio y novacio', () => {
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('dias_venc', 'vacio')))), ['EMP-0003']);
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('dias_venc', 'novacio')))), ['EMP-0001', 'EMP-0002', 'EMP-0004']);
+      ok(!R.cumpleCondicion(A1, c('asist', 'vacio')), 'cero no es vacío');
+    });
+    prueba('Numérico: cero cuenta como dato (días a vencimiento 0)', () => {
+      ok(R.cumpleCondicion(af({ dias_venc: 0 }), c('dias_venc', 'entre', [0, 30])));
+      ok(R.cumpleCondicion(af({ dias_venc: 0 }), c('dias_venc', 'novacio')));
+    });
+
+    // ============================ Listas y booleanos ===================================
+    prueba('Lista: es y noes', () => {
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('banda', 'es', 'Riesgo alto')))), ['EMP-0001', 'EMP-0004']);
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('banda', 'noes', 'Riesgo alto')))), ['EMP-0002', 'EMP-0003']);
+    });
+    prueba('Lista: uno y ninguno', () => {
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('nivel', 'uno', ['Conectar', 'Crecer'])))), ['EMP-0001', 'EMP-0002']);
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('nivel', 'ninguno', ['Conectar', 'Crecer'])))), ['EMP-0003', 'EMP-0004']);
+      ok(!R.cumpleCondicion(A1, c('nivel', 'uno', [])), 'uno con lista vacía');
+      ok(!R.cumpleCondicion(A1, c('nivel', 'uno', 'Conectar')), 'uno exige arreglo');
+      ok(!R.cumpleCondicion(A1, c('nivel', 'ninguno', 'Conectar')), 'ninguno exige arreglo');
+    });
+    prueba('Lista: la comparación distingue mayúsculas y tildes', () => {
+      ok(!R.cumpleCondicion(A2, c('banda', 'es', 'atencion')) && R.cumpleCondicion(A2, c('banda', 'es', 'Atención')));
+    });
+    prueba('Booleano: verdadero y falso, con dato ausente tratado como no', () => {
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('comunidad', 'verdadero')))), ['EMP-0002', 'EMP-0003']);
+      igual(ids(MUESTRA.filter((a) => R.cumpleCondicion(a, c('comunidad', 'falso')))), ['EMP-0001', 'EMP-0004']);
+    });
+    prueba('Operador desconocido o campo inexistente no cumple y no lanza', () => {
+      ok(!R.cumpleCondicion(A1, c('asist', 'raro', 1)));
+      ok(!R.cumpleCondicion(A1, c('no_existe', 'eq', 1)));
+      ok(!R.cumpleCondicion(A1, c('__proto__', 'eq', 1)));
+    });
+
+    // ============================ Nulos ===================================
+    prueba('Nulos: un dato ausente no activa comparaciones numéricas', () => {
+      for (const op of ['eq', 'ne', 'lt', 'le', 'gt', 'ge']) ok(!R.cumpleCondicion(A3, c('dias_venc', op, 10)), `${op} cumplió con dato nulo`);
+      ok(!R.cumpleCondicion(A3, c('dias_venc', 'entre', [-1000, 1000])));
+      ok(!R.cumpleCondicion(A3, c('antig_anios', 'lt', 100)));
+    });
+    prueba('Nulos: undefined se trata igual que null', () => {
+      const sin = { id: 'S', ejecutiva: 'KAM A' };
+      ok(R.cumpleCondicion(sin, c('sat', 'vacio')) && !R.cumpleCondicion(sin, c('sat', 'lt', 5)) && !R.cumpleCondicion(sin, c('banda', 'es', 'Saludable')));
+    });
+    prueba('Nulos: la regla «sat < 4,2 O nps_min <= 6» activa por la segunda cuando falta la primera', () => {
+      const r = regla([c('sat', 'lt', 4.2), c('nps_min', 'le', 6, 'O')]);
+      igual(ids(R.evaluar(r, [af({ id: 'a', sat: null, nps_min: 5 }), af({ id: 'b', sat: null, nps_min: null }), af({ id: 'c', sat: 4.0, nps_min: null })])), ['a', 'c']);
+    });
+
+    // ============================ Conectores Y / O ===================================
+    const T = (id) => af({ id, tag: true });
+    prueba('Y: todas las condiciones deben cumplirse', () => {
+      const r = regla([c('banda', 'es', 'Riesgo alto'), c('dias_venc', 'lt', 0)]);
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001']);
+    });
+    prueba('O: basta con una condición', () => {
+      const r = regla([c('banda', 'es', 'Riesgo alto'), c('nivel', 'es', 'Crecer', 'O')]);
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001', 'EMP-0002', 'EMP-0004']);
+    });
+    prueba('Precedencia: «A Y B O C» es «(A y B) o C»', () => {
+      // A: banda es Riesgo alto, B: asist = 0, C: ejecutiva es KAM B
+      const r = regla([c('banda', 'es', 'Riesgo alto'), c('asist', 'eq', 0), c('ejecutiva', 'es', 'KAM B', 'O')]);
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001', 'EMP-0002']);
+    });
+    prueba('Precedencia: «A O B Y C» es «A o (B y C)»', () => {
+      const r = regla([c('ejecutiva', 'es', 'KAM B'), c('banda', 'es', 'Riesgo alto', 'O'), c('asist', 'eq', 0)]);
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001', 'EMP-0002']); // EMP-0004 es Riesgo alto pero tiene asistencias
+    });
+    prueba('El conector de la primera condición se ignora', () => {
+      const r1 = regla([c('banda', 'es', 'Riesgo alto', 'O'), c('asist', 'eq', 0)]);
+      const r2 = regla([c('banda', 'es', 'Riesgo alto', 'Y'), c('asist', 'eq', 0)]);
+      igual(ids(R.evaluar(r1, MUESTRA)), ids(R.evaluar(r2, MUESTRA)));
+    });
+    prueba('Varios bloques O: cualquiera de tres alternativas', () => {
+      const r = regla([c('id', 'es', 'EMP-0001'), c('id', 'es', 'EMP-0002', 'O'), c('id', 'es', 'EMP-0004', 'O')]);
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001', 'EMP-0002', 'EMP-0004']);
+    });
+    prueba('Sin condiciones la regla no activa a nadie', () => {
+      igual(R.evaluar(regla([]), MUESTRA), []);
+      igual(R.evaluar({ ...regla([]), condiciones: undefined }, MUESTRA), []);
+    });
+    prueba('Un conector inesperado se trata como Y', () => {
+      const r = regla([c('banda', 'es', 'Riesgo alto'), c('asist', 'eq', 0, 'XOR')]);
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001']);
+    });
+    prueba('evaluar no modifica la lista ni las reglas', () => {
+      const copia = JSON.stringify(MUESTRA), r = regla([c('asist', 'eq', 0)]), rc = JSON.stringify(r);
+      R.evaluar(r, MUESTRA);
+      igual(JSON.stringify(MUESTRA), copia); igual(JSON.stringify(r), rc);
+    });
+
+    // ============================ Ámbito por ejecutiva ===================================
+    prueba('Ámbito: limita la regla a una ejecutiva', () => {
+      igual(ids(R.evaluar(regla([c('banda', 'es', 'Riesgo alto')], { ambito: 'KAM A' }), MUESTRA)), ['EMP-0001']);
+      igual(ids(R.evaluar(regla([c('banda', 'es', 'Riesgo alto')], { ambito: 'Sin asignar' }), MUESTRA)), ['EMP-0004']);
+    });
+    prueba('Ámbito nulo o vacío significa toda la cartera', () => {
+      igual(R.evaluar(regla([c('asist', 'ge', 0)], { ambito: null }), MUESTRA).length, 4);
+      igual(R.evaluar(regla([c('asist', 'ge', 0)], { ambito: '' }), MUESTRA).length, 4);
+    });
+    prueba('Ámbito desconocido no activa a nadie y distingue mayúsculas', () => {
+      igual(R.evaluar(regla([c('asist', 'ge', 0)], { ambito: 'KAM Z' }), MUESTRA), []);
+      igual(R.evaluar(regla([c('asist', 'ge', 0)], { ambito: 'kam a' }), MUESTRA), []);
+    });
+    prueba('Ámbito se aplica antes de los bloques O (no se escapa por una alternativa)', () => {
+      const r = regla([c('banda', 'es', 'Riesgo alto'), c('nivel', 'es', 'Crecer', 'O')], { ambito: 'KAM A' });
+      igual(ids(R.evaluar(r, MUESTRA)), ['EMP-0001']);
+    });
+    prueba('Ámbito con ejecutiva sin afiliados activos devuelve vacío', () => {
+      igual(R.evaluar(regla([c('asist', 'ge', 0)], { ambito: 'KAM B' }), [A1, A3, A4]), []);
+    });
+
+    // ============================ Validación ===================================
+    prueba('validarRegla: regla válida no tiene errores', () => igual(R.validarRegla(regla([c('banda', 'es', 'Riesgo alto')])), []));
+    prueba('validarRegla: exige nombre y condiciones', () => {
+      ok(R.validarRegla(regla([c('banda', 'es', 'Riesgo alto')], { nombre: '   ' })).some((e) => e.includes('nombre')));
+      ok(R.validarRegla(regla([])).some((e) => e.includes('al menos una condición')));
+    });
+    prueba('validarRegla: campo y operador inválidos', () => {
+      ok(R.validarRegla(regla([c('zzz', 'eq', 1)])).some((e) => e.includes('campo no es válido')));
+      ok(R.validarRegla(regla([c('banda', 'lt', 1)])).some((e) => e.includes('operador no es válido')));
+      ok(R.validarRegla(regla([c('asist', 'es', 'x')])).some((e) => e.includes('operador no es válido')));
+    });
+    prueba('validarRegla: valores faltantes según el operador', () => {
+      ok(R.validarRegla(regla([c('asist', 'eq', '')])).length === 1, 'número vacío');
+      ok(R.validarRegla(regla([c('asist', 'eq', 'abc')])).length === 1, 'número no numérico');
+      ok(R.validarRegla(regla([c('banda', 'es', '')])).length === 1, 'lista sin elección');
+      ok(R.validarRegla(regla([c('asist', 'entre', ['', 3])])).length === 1, 'rango incompleto');
+      ok(R.validarRegla(regla([c('asist', 'entre', 3)])).length === 1, 'rango sin arreglo');
+      ok(R.validarRegla(regla([c('banda', 'uno', [])])).length === 1, 'multi vacío');
+      igual(R.validarRegla(regla([c('asist', 'vacio', ''), c('comunidad', 'verdadero', '')])), [], 'operadores sin valor');
+    });
+    prueba('validarRegla: indica el número de cada condición con error', () => {
+      const e = R.validarRegla(regla([c('banda', 'es', 'Riesgo alto'), c('asist', 'eq', '')]));
+      ok(e.length === 1 && e[0].startsWith('Condición 2'), e.join('|'));
+    });
+    prueba('Las plantillas incluidas son válidas, se pueden sanear y se evalúan', () => {
+      ok(R.PLANTILLAS.length >= 7);
+      for (const p of R.PLANTILLAS) {
+        const nueva = R.reglaDesdePlantilla(p);
+        igual(R.validarRegla(nueva), [], p.nombre);
+        ok(R.sanearRegla(nueva) !== null, `no se pudo sanear ${p.nombre}`);
+        ok(Array.isArray(R.evaluar(nueva, MUESTRA)), p.nombre);
+        ok(R.describirRegla(nueva).length > 5);
+      }
+    });
+    prueba('reglaDesdePlantilla copia en profundidad y asigna ids distintos', () => {
+      const a = R.reglaDesdePlantilla(R.PLANTILLAS[0]), b = R.reglaDesdePlantilla(R.PLANTILLAS[0]);
+      ok(a.id !== b.id); a.condiciones[0].valor = 'cambiado';
+      ok(R.PLANTILLAS[0].condiciones[0].valor === 'Riesgo alto', 'la plantilla original se modificó');
+      igual(R.reglaDesdePlantilla(null).condiciones.length, 1);
+    });
+
+    // ============================ Descripción ===================================
+    prueba('describirCondicion y describirRegla redactan en español', () => {
+      igual(R.describirCondicion(c('banda', 'es', 'Riesgo alto')), 'Banda de riesgo es Riesgo alto');
+      igual(R.describirCondicion(c('dias_venc', 'entre', [0, 30])), 'Días a vencimiento (negativo si ya venció) está entre 0 y 30');
+      igual(R.describirCondicion(c('nivel', 'uno', ['Conectar', 'Crecer'])), 'Nivel es uno de Conectar, Crecer');
+      igual(R.describirCondicion(c('sat', 'vacio')), 'Satisfacción promedio (1 a 5) no tiene dato');
+      igual(R.describirCondicion(c('zzz', 'eq', 1)), 'Condición desconocida');
+      const d = R.describirRegla(regla([c('banda', 'es', 'Riesgo alto'), c('asist', 'eq', 0), c('nivel', 'es', 'Crecer', 'O')], { ambito: 'KAM A' }));
+      ok(d.startsWith('Ejecutiva KAM A: ') && d.includes(' Y ') && d.includes(' O '), d);
+      igual(R.describirRegla(regla([])), 'Sin condiciones');
+    });
+
+    // ============================ Importación de reglas inválidas ===================================
+    const valida = () => ({ nombre: 'Regla de prueba', descripcion: 'd', activa: true, severidad: 'alta', ambito: 'KAM A', condiciones: [c('banda', 'es', 'Riesgo alto'), c('asist', 'entre', [0, 2], 'O')] });
+    prueba('sanearRegla: acepta una regla válida y genera un id propio', () => {
+      const r = R.sanearRegla({ ...valida(), id: 'intruso' });
+      ok(r && r.id !== 'intruso' && /^r[a-z0-9]+$/.test(r.id), `id=${r?.id}`);
+      igual([r.nombre, r.severidad, r.ambito, r.activa, r.condiciones.length], ['Regla de prueba', 'alta', 'KAM A', true, 2]);
+    });
+    prueba('sanearRegla: rechaza entradas que no son objetos', () => {
+      for (const x of [null, undefined, 0, 5, 'texto', true]) ok(R.sanearRegla(x) === null, String(x));
+      ok(R.sanearRegla([]) === null, 'arreglo vacío');
+    });
+    prueba('sanearRegla: rechaza reglas sin nombre, sin condiciones o con condiciones inválidas', () => {
+      ok(R.sanearRegla({ ...valida(), nombre: '' }) === null);
+      ok(R.sanearRegla({ ...valida(), nombre: 123456 }) !== null, 'un nombre numérico se convierte a texto');
+      ok(R.sanearRegla({ ...valida(), condiciones: [] }) === null);
+      ok(R.sanearRegla({ ...valida(), condiciones: 'banda' }) === null);
+      ok(R.sanearRegla({ ...valida(), condiciones: [c('inexistente', 'eq', 1)] }) === null);
+      ok(R.sanearRegla({ ...valida(), condiciones: [c('banda', 'lt', 3)] }) === null);
+      ok(R.sanearRegla({ ...valida(), condiciones: [null] }) === null);
+      ok(R.sanearRegla({ ...valida(), condiciones: [c('asist', 'entre', 'a-b')] }) === null);
+      ok(R.sanearRegla({ ...valida(), condiciones: [c('asist', 'eq', { valueOf: () => 1 })] }) === null, 'objeto como valor');
+    });
+    prueba('sanearRegla: descarta campos desconocidos y corrige valores fuera de catálogo', () => {
+      const r = R.sanearRegla({ ...valida(), severidad: 'critica', ambito: 42, activa: 'no', extra: { a: 1 }, __proto__: { x: 1 }, onclick: 'alert(1)' });
+      ok(r.severidad === 'media', 'severidad desconocida pasa a media');
+      ok(r.ambito === null, 'ámbito no textual pasa a nulo');
+      ok(!('extra' in r) && !('onclick' in r), 'campos extra');
+      ok(Object.keys(r).sort().join() === 'activa,ambito,condiciones,descripcion,id,nombre,severidad', Object.keys(r).join());
+    });
+    prueba('sanearRegla: recorta longitudes y cantidad de condiciones', () => {
+      const r = R.sanearRegla({ ...valida(), nombre: 'n'.repeat(500), descripcion: 'd'.repeat(2000), ambito: 'a'.repeat(300) });
+      ok(r.nombre.length === 120 && r.descripcion.length === 500 && r.ambito.length === 60);
+      const muchas = R.sanearRegla({ ...valida(), condiciones: Array.from({ length: 40 }, () => c('asist', 'ge', 0)) });
+      ok(muchas.condiciones.length === 20, `condiciones=${muchas.condiciones.length}`);
+      const larga = R.sanearRegla({ ...valida(), condiciones: [c('nivel', 'uno', Array.from({ length: 200 }, (_, i) => `v${i}`))] });
+      ok(larga.condiciones[0].valor.length === 50);
+    });
+    prueba('sanearRegla: el conector inválido se vuelve Y', () => {
+      const r = R.sanearRegla({ ...valida(), condiciones: [c('banda', 'es', 'Riesgo alto'), c('asist', 'eq', 0, 'DROP')] });
+      igual(r.condiciones.map((x) => x.conector), ['Y', 'Y']);
+    });
+    prueba('sanearRegla: no contamina prototipos con JSON malicioso', () => {
+      const mal = JSON.parse('{"nombre":"x","condiciones":[{"campo":"asist","op":"eq","valor":1}],"__proto__":{"contaminado":true},"constructor":{"prototype":{"contaminado":true}}}');
+      R.sanearRegla(mal);
+      ok(({}).contaminado === undefined && Object.prototype.contaminado === undefined, 'se contaminó Object.prototype');
+    });
+    prueba('Texto con HTML en nombre o descripción queda como texto al pintarse', () => {
+      const carga = '<img src=x onerror="window.__xss=1"><script>window.__xss=1<\/script>';
+      const r = R.sanearRegla({ ...valida(), nombre: carga, descripcion: carga });
+      ok(r.nombre === carga, 'el texto se conserva tal cual');
+      const nodo = h('div', {}, h('strong', {}, r.nombre), h('p', {}, r.descripcion), R.describirRegla(r));
+      ok(nodo.querySelector('img, script') === null, 'se creó un elemento a partir del texto');
+      ok(nodo.textContent.includes('<img src=x'), 'el texto debe verse literal');
+      ok(window.__xss === undefined, 'se ejecutó código');
+    });
+    prueba('importarReglasJson: JSON inválido lanza un error claro en español', () => {
+      reiniciar();
+      for (const t of ['', '{', 'no es json', '{"a":', 'undefined']) lanza(() => R.importarReglasJson(t), 'no es un JSON válido');
+      igual(R.almacen.reglas.length, 0, 'no debe importar nada');
+    });
+    prueba('importarReglasJson: JSON válido pero de otra forma lanza error de formato', () => {
+      reiniciar();
+      for (const t of ['5', '"texto"', 'null', 'true', '{}', '{"formato":"otro","reglas":[]}', '{"formato":"dactho360-reglas"}', '{"formato":"dactho360-reglas","reglas":"x"}', '{"reglas":[{}]}']) {
+        lanza(() => R.importarReglasJson(t), 'formato de reglas');
+      }
+      igual(R.almacen.reglas.length, 0);
+    });
+    prueba('importarReglasJson: mezcla de reglas válidas e inválidas', () => {
+      reiniciar();
+      const lista = [valida(), { nombre: '' }, null, 7, { ...valida(), condiciones: [] }, { ...valida(), nombre: 'Otra' }, { ...valida(), condiciones: [c('x', 'y', 1)] }];
+      const r = R.importarReglasJson(JSON.stringify(lista));
+      igual(r, { importadas: 2, descartadas: 5 });
+      igual(R.almacen.reglas.map((x) => x.nombre), ['Regla de prueba', 'Otra']);
+      ok(new Set(R.almacen.reglas.map((x) => x.id)).size === 2, 'ids únicos');
+    });
+    prueba('importarReglasJson: acepta arreglo simple y el formato exportado', () => {
+      reiniciar();
+      igual(R.importarReglasJson(JSON.stringify([valida()])), { importadas: 1, descartadas: 0 });
+      igual(R.importarReglasJson(JSON.stringify({ formato: 'dactho360-reglas', version: 1, reglas: [valida(), valida()] })), { importadas: 2, descartadas: 0 });
+      igual(R.almacen.reglas.length, 3);
+    });
+    prueba('importarReglasJson: un arreglo vacío importa 0 sin error', () => {
+      reiniciar();
+      igual(R.importarReglasJson('[]'), { importadas: 0, descartadas: 0 });
+    });
+    prueba('importarReglasJson: limita a 200 reglas por archivo y no reutiliza ids ajenos', () => {
+      reiniciar();
+      const enorme = Array.from({ length: 250 }, (_, i) => ({ ...valida(), id: 'mismo', nombre: `R${i}` }));
+      const r = R.importarReglasJson(JSON.stringify(enorme));
+      ok(r.importadas === 200 && r.descartadas === 50, JSON.stringify(r));
+      ok(new Set(R.almacen.reglas.map((x) => x.id)).size === 200 && !R.almacen.reglas.some((x) => x.id === 'mismo'));
+    });
+    prueba('Exportar e importar conserva el contenido de las reglas (ida y vuelta)', () => {
+      reiniciar();
+      R.almacen.reglas = R.PLANTILLAS.map(R.reglaDesdePlantilla);
+      const texto = R.exportarReglasJson();
+      const obj = JSON.parse(texto);
+      ok(obj.formato === 'dactho360-reglas' && obj.version === 1 && obj.reglas.length === R.PLANTILLAS.length);
+      ok(obj.reglas.every((x) => !('id' in x)), 'la exportación no incluye ids');
+      const antes = R.almacen.reglas.map(({ id, ...resto }) => resto);
+      R.almacen.reglas = [];
+      igual(R.importarReglasJson(texto), { importadas: R.PLANTILLAS.length, descartadas: 0 });
+      igual(R.almacen.reglas.map(({ id, ...resto }) => resto), antes);
+    });
+
+    // ============================ Persistencia y estado ===================================
+    prueba('Almacenamiento simulado disponible para las pruebas de persistencia', () => ok(almacenSimulado, 'no se pudo reemplazar localStorage; las pruebas de persistencia no son confiables'));
+    prueba('cargarReglas: sin datos guardados siembra tres plantillas activas y las guarda', () => {
+      reiniciar(); R.cargarReglas();
+      ok(R.almacen.reglas.length === 3 && R.almacen.reglas.every((r) => r.activa) && R.almacen.persistente);
+      ok(JSON.parse(falso.getItem(CLAVE)).length === 3);
+    });
+    prueba('cargarReglas: recupera lo guardado y respeta reglas desactivadas', () => {
+      reiniciar();
+      const g = [{ ...R.reglaDesdePlantilla(R.PLANTILLAS[1]), activa: false, id: 'fijo1' }];
+      falso.setItem(CLAVE, JSON.stringify(g)); R.cargarReglas();
+      igual(R.almacen.reglas.map((r) => [r.id, r.activa]), [['fijo1', false]]);
+    });
+    prueba('cargarReglas: JSON dañado se descarta con aviso y no lanza', () => {
+      reiniciar(); falso.setItem(CLAVE, '{no es json'); R.cargarReglas();
+      ok(R.almacen.reglas.length === 0 && R.almacen.ultimoError && R.almacen.ultimoError.includes('dañadas'));
+    });
+    prueba('cargarReglas: filtra entradas nulas o inválidas guardadas', () => {
+      reiniciar();
+      falso.setItem(CLAVE, JSON.stringify([null, 5, 'x', { nombre: 'sin condiciones' }, { ...valida(), id: 'bueno' }, { ...valida(), condiciones: [c('zzz', 'eq', 1)] }]));
+      R.cargarReglas();
+      igual(R.almacen.reglas.map((r) => r.id), ['bueno']);
+    });
+    prueba('cargarReglas: lo guardado que no es un arreglo queda vacío', () => {
+      reiniciar(); falso.setItem(CLAVE, '{"a":1}'); R.cargarReglas();
+      igual(R.almacen.reglas, []);
+    });
+    prueba('cargarReglas: un id guardado que no es texto se reemplaza por uno válido', () => {
+      reiniciar(); falso.setItem(CLAVE, JSON.stringify([{ ...valida(), id: { x: 1 } }]));
+      R.cargarReglas();
+      ok(R.almacen.reglas.length === 1 && typeof R.almacen.reglas[0].id === 'string');
+    });
+    prueba('Migración: la clave antigua dacho360.reglas.v1 pasa una vez a dactho360.reglas.v1 y se elimina', () => {
+      reiniciar();
+      const g = [{ ...R.reglaDesdePlantilla(R.PLANTILLAS[2]), id: 'antigua1', nombre: 'Regla de la versión anterior' }];
+      falso.setItem(CLAVE_ANTIGUA, JSON.stringify(g)); R.cargarReglas();
+      igual(R.almacen.reglas.map((r) => [r.id, r.nombre]), [['antigua1', 'Regla de la versión anterior']]);
+      ok(falso.getItem(CLAVE_ANTIGUA) === null, 'la clave antigua debe eliminarse');
+      igual(JSON.parse(falso.getItem(CLAVE)).map((r) => r.id), ['antigua1']);
+      R.cargarReglas();
+      igual(R.almacen.reglas.map((r) => r.id), ['antigua1'], 'una segunda carga no duplica ni vuelve a sembrar');
+    });
+    prueba('Migración: si ya existe la clave nueva, no se pisa y la antigua se descarta', () => {
+      reiniciar();
+      falso.setItem(CLAVE, JSON.stringify([{ ...valida(), id: 'nueva' }]));
+      falso.setItem(CLAVE_ANTIGUA, JSON.stringify([{ ...valida(), id: 'vieja' }]));
+      R.cargarReglas();
+      igual(R.almacen.reglas.map((r) => r.id), ['nueva']);
+      ok(falso.getItem(CLAVE_ANTIGUA) === null);
+    });
+    prueba('Migración: sin clave antigua ni nueva se siembran las plantillas (comportamiento previo)', () => {
+      reiniciar(); R.cargarReglas();
+      ok(R.almacen.reglas.length === 3 && falso.getItem(CLAVE_ANTIGUA) === null);
+    });
+    prueba('Migración: el contenido antiguo dañado se descarta con aviso, sin lanzar', () => {
+      reiniciar(); falso.setItem(CLAVE_ANTIGUA, '{no es json'); R.cargarReglas();
+      ok(R.almacen.reglas.length === 0 && R.almacen.ultimoError && R.almacen.ultimoError.includes('dañadas'));
+    });
+    prueba('Importar: se sigue aceptando el formato antiguo «dacho360-reglas»', () => {
+      reiniciar();
+      igual(R.importarReglasJson(JSON.stringify({ formato: 'dacho360-reglas', version: 1, reglas: [valida()] })), { importadas: 1, descartadas: 0 });
+    });
+    prueba('Sin almacenamiento disponible, las reglas funcionan en memoria y se avisa', () => {
+      reiniciar(); falso.lecturaBloqueada = true; falso.falla = true;
+      R.cargarReglas();
+      ok(R.almacen.reglas.length === 3 && R.almacen.persistente === false, 'debe sembrar en memoria y marcar no persistente');
+      ok(R.guardarRegla(R.reglaDesdePlantilla(null)) === false && R.almacen.reglas.length === 4);
+    });
+    prueba('guardarRegla, duplicarRegla y eliminarRegla', () => {
+      reiniciar();
+      const r = R.reglaDesdePlantilla(R.PLANTILLAS[0]);
+      ok(R.guardarRegla(r) === true && R.almacen.reglas.length === 1);
+      R.guardarRegla({ ...r, nombre: 'Editada' });
+      ok(R.almacen.reglas.length === 1 && R.almacen.reglas[0].nombre === 'Editada', 'guardar con el mismo id reemplaza');
+      const copia = R.duplicarRegla(r.id);
+      ok(copia.id !== r.id && copia.nombre === 'Editada (copia)' && R.almacen.reglas.length === 2);
+      copia.condiciones[0].valor = 'otro'; ok(R.almacen.reglas[0].condiciones[0].valor === 'Riesgo alto', 'copia profunda');
+      ok(R.duplicarRegla('no-existe') === null);
+      R.eliminarRegla(r.id);
+      igual(R.almacen.reglas.map((x) => x.id), [copia.id]);
+      R.eliminarRegla('no-existe'); ok(R.almacen.reglas.length === 1, 'eliminar un id inexistente no cambia nada');
+    });
+    prueba('alCambiar avisa a los suscriptores y permite darse de baja', () => {
+      reiniciar(); let n = 0; const baja = R.alCambiar(() => { n += 1; });
+      R.guardarRegla(R.reglaDesdePlantilla(null)); ok(n === 1);
+      baja(); R.guardarRegla(R.reglaDesdePlantilla(null)); ok(n === 1, 'siguió avisando tras la baja');
+    });
+    prueba('reglasPorAfiliado solo cuenta reglas activas y agrupa por afiliado', () => {
+      reiniciar();
+      R.almacen.reglas = [
+        regla([c('banda', 'es', 'Riesgo alto')], { id: 'a' }), regla([c('asist', 'eq', 0)], { id: 'b' }), regla([c('asist', 'ge', 0)], { id: 'c', activa: false }),
+      ];
+      const m = R.reglasPorAfiliado(MUESTRA);
+      igual([...m.keys()].sort(), ['EMP-0001', 'EMP-0004']);
+      igual(m.get('EMP-0001').map((r) => r.id), ['a', 'b']);
+      igual(m.get('EMP-0004').map((r) => r.id), ['a']);
+    });
+    prueba('nuevoId genera identificadores únicos en ráfaga', () => {
+      reiniciar();
+      const s = new Set(Array.from({ length: 2000 }, () => R.reglaDesdePlantilla(null).id));
+      ok(s.size === 2000, `únicos=${s.size}`);
+    });
+
+    // ============================ Catálogo de campos ===================================
+    prueba('campos: ids únicos, tipos conocidos y opciones tomadas de los datos', () => {
+      const cs = R.campos();
+      ok(new Set(cs.map((x) => x.id)).size === cs.length, 'ids repetidos');
+      ok(cs.every((x) => R.OPERADORES[x.tipo]), 'tipo sin operadores');
+      const nivel = cs.find((x) => x.id === 'nivel').opciones;
+      igual(nivel, ['Conectar', 'Crecer', 'Liderar']);
+      ok(cs.find((x) => x.id === 'banda').opciones.length === 3);
+    });
+    prueba('campos: se actualiza al cambiar la lista de afiliados y omite valores nulos', () => {
+      const previa = datos.afiliadosLista;
+      datos.afiliadosLista = [af({ sector: null, ciudad: 'Cali' }), af({ sector: 'Salud', ciudad: 'Bogotá' })];
+      igual(R.campos().find((x) => x.id === 'sector').opciones, ['Salud']);
+      igual(R.campos().find((x) => x.id === 'ciudad').opciones, ['Bogotá', 'Cali']);
+      datos.afiliadosLista = previa;
+      ok(R.campos().find((x) => x.id === 'ciudad').opciones.length === 1);
+    });
+    prueba('Cada operador tiene id único y una etiqueta en español', () => {
+      for (const [tipo, ops] of Object.entries(R.OPERADORES)) {
+        ok(new Set(ops.map((o) => o.id)).size === ops.length, `ids repetidos en ${tipo}`);
+        ok(ops.every((o) => o.etiqueta && [0, 1, 2, 'multi'].includes(o.valor)), tipo);
+      }
+    });
+
+    // ============================ Con los datos reales del tablero ===================================
+    prueba('Con los datos reales: cada campo del catálogo existe y cada plantilla se evalúa sin errores', async () => {
+      const resp = await fetch('../data/afiliados.json', { cache: 'no-cache' });
+      ok(resp.ok, `no se pudo leer data/afiliados.json (${resp.status})`);
+      const lista = (await resp.json()).afiliados;
+      ok(lista.length > 100, 'muy pocos afiliados');
+      const previa = datos.afiliadosLista;
+      datos.afiliadosLista = lista;
+      try {
+        for (const campo of R.campos()) ok(campo.id in lista[0], `el campo «${campo.id}» no existe en los datos`);
+        for (const p of R.PLANTILLAS) {
+          const sel = R.evaluar(R.reglaDesdePlantilla(p), lista);
+          ok(sel.length <= lista.length, p.nombre);
+        }
+        const sinAsist = R.evaluar(regla([c('asist', 'eq', 0)]), lista).length;
+        igual(sinAsist, lista.filter((a) => a.asist === 0).length, 'coincide con un conteo directo');
+        const vencidas = R.evaluar(regla([c('dias_venc', 'lt', 0)]), lista).length;
+        igual(vencidas, lista.filter((a) => a.dias_venc !== null && a.dias_venc < 0).length);
+        const total = lista.length;
+        const porEjec = [...new Set(lista.map((a) => a.ejecutiva))].reduce((s, e) => s + R.evaluar(regla([c('asist', 'ge', 0)], { ambito: e }), lista).length, 0);
+        igual(porEjec, total, 'la suma por ámbito debe igualar la cartera');
+      } finally { datos.afiliadosLista = previa; }
+    });
+
+    // ---- Ejecución y presentación ------------------------------------------------------
+    const cuerpo = document.getElementById('resultados'), resumen = document.getElementById('resumen');
+    let aprobadas = 0, fallidas = 0;
+    const detalleFallos = [];
+    for (const p of pruebas) {
+      let estado = 'aprobado', detalle = '';
+      try { await p.fn(); aprobadas += 1; } catch (e) { estado = 'fallido'; fallidas += 1; detalle = e && e.message ? e.message : String(e); detalleFallos.push(`${p.nombre}: ${detalle}`); }
+      cuerpo.append(h('tr', { 'data-estado': estado }, h('td', { class: `estado ${estado}` }, estado === 'aprobado' ? 'Aprobado' : 'Fallido'), h('td', {}, p.nombre), h('td', { class: 'detalle' }, detalle)));
+    }
+    // Se restaura el almacenamiento real antes de mostrar el resultado.
+    try { delete window.localStorage; } catch { /* sin efecto */ }
+    const total = aprobadas + fallidas;
+    resumen.className = fallidas ? 'fallido' : 'aprobado';
+    resumen.textContent = fallidas ? `${fallidas} de ${total} pruebas fallaron.` : `Todas las pruebas aprobadas: ${aprobadas} de ${total}.`;
+    document.title = `${fallidas ? 'FALLIDO' : 'APROBADO'} ${aprobadas}/${total} · Pruebas del motor de reglas`;
+    window.__resultado = { total, aprobadas, fallidas, fallos: detalleFallos };
+  </script>
+</body>
+</html>

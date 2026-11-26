@@ -1,0 +1,10 @@
+[project]
+name = "dactho360-pipeline"
+version = "2.0.0"
+description = "Pipeline de datos DACTHO 360: integra afiliación, asistencia y encuestas de ACTHO"
+requires-python = ">=3.11"
+dependencies = ["pandas>=2.2", "openpyxl>=3.1", "numpy>=1.26"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DACTHO 360 · Tablero de gestión de afiliados</title>
+  <meta name="description" content="DACTHO 360: Tablero Integral de Gestión de Afiliados de ACTHO. Retención, participación, NPS y alertas (datos anonimizados).">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0e1522" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6fa" media="(prefers-color-scheme: light)">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="img/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+
+  <!-- Open Graph / redes (las URL de vista previa deben ser absolutas por especificación) -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_CO">
+  <meta property="og:site_name" content="DACTHO 360">
+  <meta property="og:title" content="DACTHO 360 · Tablero de gestión de afiliados">
+  <meta property="og:description" content="Retención, participación en eventos, NPS y alertas de la cartera de afiliados de ACTHO, con filtros interactivos. Datos anonimizados.">
+  <meta property="og:url" content="https://luisk217.github.io/EstudIA-DACTHOS360/">
+  <meta property="og:image" content="https://luisk217.github.io/EstudIA-DACTHOS360/img/og-dactho360.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Panel DACTHO 360 con indicadores y gráficos de la cartera de afiliados">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DACTHO 360 · Tablero de gestión de afiliados">
+  <meta name="twitter:description" content="Retención, participación, NPS y alertas de la cartera de afiliados de ACTHO.">
+  <meta name="twitter:image" content="https://luisk217.github.io/EstudIA-DACTHOS360/img/og-dactho360.png">
+
+  <link rel="preload" href="fonts/sourcesans3-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    /* Aplica el tema guardado antes de pintar para evitar parpadeo (clave nueva o, si no existe, la antigua). */
+    try {
+      var t = localStorage.getItem('dactho360.tema') || localStorage.getItem('dacho360.tema');
+      if (t === 'claro' || t === 'oscuro') document.documentElement.setAttribute('data-tema', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="salto" href="#principal">Saltar al contenido</a>
+  <div class="app">
+    <div id="barra-movil" class="barra-movil"></div>
+    <aside id="nav-lateral" class="nav-lateral" aria-label="Navegación principal"></aside>
+    <main id="principal" class="contenido" tabindex="-1">
+      <noscript><p>Este tablero necesita JavaScript habilitado para funcionar.</p></noscript>
+    </main>
+  </div>
+  <!-- Chart.js 4.5.1 (MIT), servido localmente: sin CDN ni peticiones externas -->
+  <script src="vendor/chartjs/chart.umd.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

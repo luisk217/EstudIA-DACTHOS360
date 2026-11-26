@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "descripcion": "Puntos de riesgo de no renovación. Cada factor suma puntos; el riesgo final es 0-100 (puntos / máximo posible). La salud es 100 menos el riesgo.",
+  "bandas": {
+    "umbral_atencion": 35,
+    "umbral_riesgo_alto": 55
+  },
+  "vencimiento": {
+    "vencida": 22,
+    "hasta_30": 20,
+    "hasta_60": 16,
+    "hasta_90": 12,
+    "hasta_180": 5,
+    "mas_180": 0,
+    "sin_fecha": 8
+  },
+  "participacion": {
+    "sin_asistencia_90d": 12,
+    "sin_asistencia_anio": 10,
+    "una_sola_asistencia": 4,
+    "contacto_unico": 4,
+    "dias_afiliado_nuevo": 90,
+    "factor_afiliado_nuevo": 0.5
+  },
+  "satisfaccion": {
+    "umbral_bajo": 4.0,
+    "umbral_medio": 4.5,
+    "promedio_bajo": 10,
+    "promedio_medio": 4,
+    "detractor": 5
+  },
+  "antiguedad": {
+    "primer_anio": 6,
+    "segundo_a_tercero": 3,
+    "mas_de_tres": 0,
+    "sin_dato": 3
+  },
+  "nivel": {
+    "Conectar": 2,
+    "Crecer": 1,
+    "Liderar": 0,
+    "Sin dato": 2
+  },
+  "ejecutiva": {
+    "sin_asignar": 6
+  },
+  "comunidad": {
+    "sin_comunidad": 3
+  },
+  "renovacion_reciente": {
+    "descuento": 6
+  }
+}

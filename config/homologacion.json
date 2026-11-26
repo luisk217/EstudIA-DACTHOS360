@@ -1,0 +1,198 @@
+{
+  "version": "2.0.0",
+  "descripcion": "Diccionario de homologación de categorías de DACTHO 360. Se edita sin tocar código. Cada sección tiene «equivalencias» (clave en minúsculas, sin tildes y con espacios colapsados, hacia el valor canónico) y, cuando el dominio es cerrado, un «catalogo» con los únicos valores válidos. Un valor que no esté en las equivalencias pasa tal cual, y si además no está en el catálogo el pipeline lo reporta como categoría sin homologar (tabla control_huerfanos.csv y avisos de calidad). Para agregar una variante nueva basta con añadir su clave aquí y volver a ejecutar el pipeline.",
+  "centinelas_nulos": [
+    "n/a", "na", "n.a.", "n.d.", "nd", "-", "--", "---", "—", "–", "sin dato", "sin datos", "s/d", "sd",
+    "ninguno", "ninguna", "null", "none", "nan", "#n/a", "#valor!", "#¡valor!", "#ref!", "#div/0!", "#nombre?", "#num!",
+    "no aplica", "no registra", "no reporta", "sin informacion", "sin información", "por definir"
+  ],
+  "si_no": {
+    "verdaderos": ["si", "true", "1", "yes", "verdadero", "x"],
+    "falsos": ["no", "false", "0", "falso"]
+  },
+  "estados_membresia": {
+    "catalogo": ["Activo", "Periodo de Gracia", "Pronto a Expirar", "Cancelado", "Expirado", "Inactivo"],
+    "vigentes": ["Activo", "Periodo de Gracia", "Pronto a Expirar"],
+    "no_vigentes": ["Cancelado", "Expirado", "Inactivo"],
+    "equivalencias": {
+      "activo": "Activo", "activa": "Activo", "vigente": "Activo",
+      "periodo de gracia": "Periodo de Gracia", "en gracia": "Periodo de Gracia",
+      "pronto a expirar": "Pronto a Expirar", "por expirar": "Pronto a Expirar",
+      "cancelado": "Cancelado", "cancelada": "Cancelado",
+      "expirado": "Expirado", "expirada": "Expirado", "vencido": "Expirado",
+      "inactivo": "Inactivo", "inactiva": "Inactivo"
+    }
+  },
+  "estados_registro_crm": {
+    "catalogo": ["Activo", "Inactivo"],
+    "equivalencias": {"activo": "Activo", "inactivo": "Inactivo"}
+  },
+  "niveles": {
+    "catalogo": [
+      {"nivel": "Conectar", "categoria_zoho": "Estándar", "orden": 1, "descripcion": "Nivel de entrada de la oferta 2027 (Estándar en Zoho)."},
+      {"nivel": "Crecer", "categoria_zoho": "Premium", "orden": 2, "descripcion": "Nivel intermedio de la oferta 2027 (Premium en Zoho)."},
+      {"nivel": "Liderar", "categoria_zoho": "Elite", "orden": 3, "descripcion": "Nivel superior de la oferta 2027 (Elite en Zoho)."}
+    ],
+    "por_categoria": {
+      "estandar": "Conectar", "estandar colaborador": "Conectar",
+      "premium": "Crecer", "elite": "Liderar"
+    },
+    "por_palabra_en_tipo": [["elite", "Liderar"], ["premium", "Crecer"], ["estandar", "Conectar"]]
+  },
+  "categorias_membresia": {
+    "catalogo": ["Estándar", "Estándar Colaborador", "Premium", "Elite"],
+    "equivalencias": {"estandar": "Estándar", "estandar colaborador": "Estándar Colaborador", "premium": "Premium", "elite": "Elite"},
+    "valores_de_tipo_mal_digitados": ["empresas", "consultoras", "persona natural", "personal", "plus"]
+  },
+  "tipos_membresia": {
+    "catalogo": ["Empresa", "Consultora", "Persona natural", "Universidad", "Estudiante"],
+    "equivalencias": {
+      "empresa": "Empresa", "corporativa estandar": "Empresa", "corporativa premium": "Empresa",
+      "consultoras": "Consultora", "consultor/vendor estandar": "Consultora", "consultor/vendor premium": "Consultora",
+      "persona natural": "Persona natural", "personal premium": "Persona natural", "personal estandar": "Persona natural",
+      "universidades": "Universidad", "jovenes talentos / estudiantes": "Estudiante"
+    }
+  },
+  "sectores": {
+    "catalogo": [
+      "Agroindustria", "Alimentos y Bebidas", "Asociaciones Gremiales", "Cajas de compensación", "Comercio", "Construcción",
+      "Consultoría especializada en RRHH", "Consultoría General", "Educación", "Energético, Hidrocarburos y Minería",
+      "Entidades sin ánimo de lucro", "Farmacéutico y químicos", "Finanzas", "Hotelería/Restaurantes/Turismo", "Industria",
+      "Inmobiliario", "Logística y Transporte", "Medios y comunicaciones", "Mercadeo y Publicidad", "Ocio y Entretenimiento",
+      "Organismos Extraterritoriales", "Salud", "Seguros", "Servicios", "Servicios Legales",
+      "Soluciones y Productos para RRHH", "Tecnología"
+    ],
+    "equivalencias": {
+      "tecnologia": "Tecnología", "banca y finanzas": "Finanzas", "educacion": "Educación", "construccion": "Construcción",
+      "logistica y transporte": "Logística y Transporte", "farmaceutico y quimicos": "Farmacéutico y químicos",
+      "energetico, hidrocarburos y mineria": "Energético, Hidrocarburos y Minería",
+      "asociacones gremiales": "Asociaciones Gremiales", "asociaciones gremiales": "Asociaciones Gremiales",
+      "entidades sin animo de lucro": "Entidades sin ánimo de lucro", "ong": "Entidades sin ánimo de lucro",
+      "soluciones y productos para rrhh": "Soluciones y Productos para RRHH",
+      "cajas de compensacion": "Cajas de compensación", "hoteleria/restaurantes/turismo": "Hotelería/Restaurantes/Turismo",
+      "consultoria general": "Consultoría General", "consultoria especializada en rrhh": "Consultoría especializada en RRHH"
+    }
+  },
+  "subsectores": {
+    "equivalencias": {
+      "cajas de compensacion": "Cajas de compensación", "centros de formacion": "Centros de formación",
+      "fundaciones ongs / orgs": "Fundaciones ONGs y ORGs", "fundaciones ongs y orgs": "Fundaciones ONGs y ORGs",
+      "medios de comunicacion": "Medios y comunicaciones", "medios y comunicaciones": "Medios y comunicaciones",
+      "servivios legales": "Servicios legales", "servicios legales": "Servicios legales",
+      "materiales de construccion": "Materiales de construcción", "petroleo": "Petróleo",
+      "servicios publicos": "Servicios públicos", "farmaceutico": "Farmacéutico",
+      "servicios de consultoria": "Servicios de consultoría", "logistica": "Logística"
+    }
+  },
+  "ciudades": {
+    "catalogo": [
+      "Aguachica", "Apartadó", "Armenia", "Barrancabermeja", "Barranquilla", "Bogotá", "Bucaramanga", "Buenaventura", "Cajicá",
+      "Cali", "Candelaria", "Cartagena", "Chía", "Ciudad de Guatemala", "Cota", "Cúcuta", "El Carmen de Viboral", "Envigado",
+      "Facatativá", "Floridablanca", "Funza", "Fusagasugá", "Gachancipá", "Guacarí", "Guamal", "Guarne", "Ibagué", "Itagüí",
+      "Jamundí", "Juan de Acosta", "La Estrella", "Lenguazaque", "Madrid", "Manizales", "Medellín", "Montería", "Mosquera",
+      "Neiva", "Palermo", "Palmira", "Pereira", "Piedecuesta", "Popayán", "Riofrío", "Rionegro", "Sabaneta", "Santa Rosa de Cabal",
+      "Soacha", "Soledad", "Sopó", "Tenjo", "Turbaco", "Tuluá", "Valledupar", "Villavicencio", "Yopal", "Yumbo"
+    ],
+    "equivalencias": {
+      "bogota": "Bogotá", "bogora": "Bogotá", "bigota": "Bogotá", "bogots": "Bogotá", "bogota d.c.": "Bogotá", "bogota d.c": "Bogotá",
+      "bogota dc": "Bogotá", "bogota d. c.": "Bogotá", "bogota (bogota)": "Bogotá", "bogota d.c. (bogota)": "Bogotá",
+      "medellin": "Medellín", "mede": "Medellín", "medellib": "Medellín", "medelon": "Medellín", "mediellin": "Medellín",
+      "itagui": "Itagüí", "chia": "Chía", "sopo": "Sopó", "cajica": "Cajicá", "popayan": "Popayán", "barranquila": "Barranquilla",
+      "barra": "Barranquilla", "barranquilla": "Barranquilla", "cucuta": "Cúcuta", "ibague": "Ibagué", "monteria": "Montería",
+      "bucaramanga": "Bucaramanga", "gachancipa": "Gachancipá", "guacari": "Guacarí", "jamundi": "Jamundí", "apartado": "Apartadó",
+      "facatativa": "Facatativá", "fusagasuga": "Fusagasugá", "tulua": "Tuluá", "riofrio": "Riofrío",
+      "floridablanca giron": "Floridablanca", "el carmen de viboral": "El Carmen de Viboral",
+      "santa rosa de cabal": "Santa Rosa de Cabal", "ciudad de guatemala": "Ciudad de Guatemala",
+      "juan de acosta": "Juan de Acosta"
+    }
+  },
+  "departamentos": {
+    "catalogo": ["Antioquia", "Atlántico", "Bogotá D.C.", "Bolívar", "Cauca", "Cundinamarca", "Guatemala", "Meta", "Risaralda", "Santander", "Valle del Cauca"],
+    "equivalencias": {
+      "dc": "Bogotá D.C.", "d.c.": "Bogotá D.C.", "bogota, d.c.": "Bogotá D.C.", "bogota d.c.": "Bogotá D.C.", "bogota": "Bogotá D.C.",
+      "atlantico": "Atlántico", "bolivar": "Bolívar"
+    }
+  },
+  "regiones": {
+    "catalogo": ["Bogotá", "Antioquia", "Cundinamarca", "Eje Cafetero", "Santander", "Otra"],
+    "equivalencias": {"bogota": "Bogotá", "medellin": "Antioquia", "otro": "Otra", "otra": "Otra"}
+  },
+  "paises": {
+    "catalogo": ["Colombia", "Guatemala"],
+    "equivalencias": {"colombia": "Colombia", "colomba": "Colombia", "guatemala": "Guatemala"}
+  },
+  "tamanos": {
+    "catalogo": ["Micro", "Pequeña", "Mediana", "Grande"],
+    "equivalencias": {"micro": "Micro", "pequena": "Pequeña", "mediana": "Mediana", "grande": "Grande"}
+  },
+  "rangos_empleados": {
+    "catalogo": ["1-50", "51-200", "201-1.000", "1.001-5.000", "5.001-10.000", "10.001 o más"],
+    "equivalencias": {"mas de 10.001": "10.001 o más", "mas de 10.000": "10.001 o más", "10.001 o mas": "10.001 o más"}
+  },
+  "naturaleza_empresa": {
+    "catalogo": [
+      "Nacional Privada", "Multinacional Colombiana", "Multinacional Extranjera", "Pública/Entidad Gubernamental", "Multilatina",
+      "Institución Educativa", "ONG/Entidad sin Animo de Lucro/Asociación", "Transnacional"
+    ],
+    "equivalencias": {}
+  },
+  "ejecutivas": {
+    "etiqueta_sin_asignar": "Sin asignar",
+    "valores_sin_asignar": ["0", "0.0", "sin asignar", "sin asignar (cuenta actho)"],
+    "prefijos_sin_asignar": ["sin asignar"]
+  },
+  "modalidades": {
+    "catalogo": ["Presencial", "Virtual", "Híbrido"],
+    "equivalencias": {"presencial": "Presencial", "virtual": "Virtual", "hibrido": "Híbrido", "hibrida": "Híbrido", "mixto": "Híbrido"}
+  },
+  "lineas_evento": {
+    "catalogo": [
+      {"linea": "Anticipar", "tipo": "linea", "descripcion": "Línea de la oferta 2027 sobre anticipación normativa y de entorno."},
+      {"linea": "Saber", "tipo": "linea", "descripcion": "Línea de la oferta 2027 sobre formación y conocimiento."},
+      {"linea": "Pares", "tipo": "linea", "descripcion": "Línea de la oferta 2027 sobre comunidad y conversación entre pares."},
+      {"linea": "Proyectar", "tipo": "linea", "descripcion": "Línea de la oferta 2027 sobre proyección y estrategia."},
+      {"linea": "Evento grande", "tipo": "formato transversal", "descripcion": "Formato de gran escala que atraviesa las líneas."},
+      {"linea": "Foro", "tipo": "formato transversal", "descripcion": "Formato de foro que atraviesa las líneas."}
+    ],
+    "equivalencias": {
+      "anticipar": "Anticipar", "saber": "Saber", "pares": "Pares", "proyectar": "Proyectar",
+      "evento grande": "Evento grande", "foro": "Foro", "foros": "Foro"
+    }
+  },
+  "niveles_cargo": {
+    "catalogo": [
+      "Alta dirección (C-level / VP)", "Dirección / Gerencia", "Jefatura / Coordinación",
+      "Profesional / Analista / Consultor", "Estudiante / Practicante", "Otro"
+    ],
+    "equivalencias": {
+      "alta direccion": "Alta dirección (C-level / VP)", "alta direccion (c-level / vp)": "Alta dirección (C-level / VP)",
+      "direccion / gerencia": "Dirección / Gerencia", "jefatura / coordinacion": "Jefatura / Coordinación",
+      "profesional / analista / consultor": "Profesional / Analista / Consultor", "estudiante / practicante": "Estudiante / Practicante"
+    }
+  },
+  "comunidades": {
+    "com_hr_estrategico": "HR Estratégico",
+    "com_mas_que_salario": "Más que un Salario",
+    "com_talento_elige": "Talento que Elige",
+    "com_gente_crece": "Gente que Crece",
+    "com_mujeres_hr": "Mujeres HR",
+    "com_influenciador": "Influenciador"
+  },
+  "aspectos_encuesta": {
+    "catalogo": ["lugar_plataforma", "convocatoria", "conferencistas", "relevancia", "satisfaccion_global", "expositor", "contenido", "recepcion", "espacio", "alimentacion", "manejo_tiempo"]
+  },
+  "origenes_encuesta": {
+    "catalogo": ["encuesta_presencial", "encuesta_virtual", "encuesta_post"]
+  },
+  "fin_evento_multidia": {
+    "7": "2026-03-20",
+    "24": "2026-07-29"
+  },
+  "meses_es": {
+    "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6, "jul": 7, "ago": 8, "sep": 9, "set": 9, "oct": 10, "nov": 11, "dic": 12
+  },
+  "meses_es_completos": {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7, "agosto": 8,
+    "septiembre": 9, "setiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12
+  }
+}

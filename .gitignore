@@ -1,0 +1,27 @@
+# Datos fuente crudos (anonimizados, bajo NDA del reto): no se versionan
+Material & Recursos/
+data/raw/
+*.xlsx
+*.xls
+*.csv
+!web/data/*.csv
+
+# Tablas intermedias generadas por el pipeline
+data/processed/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+~$*

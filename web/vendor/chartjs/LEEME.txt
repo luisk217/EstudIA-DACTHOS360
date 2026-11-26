@@ -1,0 +1,7 @@
+Chart.js 4.5.1 (licencia MIT, ver LICENSE.md)
+Archivo: chart.umd.min.js (build UMD minificado, 208 KB; ~70 KB comprimido con gzip).
+Origen: paquete npm "chart.js@4.5.1" (https://www.npmjs.com/package/chart.js).
+Integridad del paquete verificada contra el registro de npm:
+sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw== (tarball chart.js-4.5.1.tgz)
+Solo se eliminó la línea final "sourceMappingURL" para evitar una petición 404.
+Se sirve localmente: no hay CDN ni peticiones externas.
